@@ -41,5 +41,5 @@ Built for the Zenith Bank hackathon, it helps banks like **Zenith Bank** underst
 
 ### 1. Clone the repo  
 ```bash
-git clone ---/Pinnacle-AI.git
+git clone https://github.com/TimiCanvas/Pinnacle-AI.git
 cd Pinnacle-AI
