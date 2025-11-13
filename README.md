@@ -30,10 +30,10 @@ Built for the Zenith Bank hackathon, it helps banks like **Zenith Bank** underst
 | Layer | Technology |
 |-------|-------------|
 | **Backend** | Python (FastAPI)|
-| **AI / ML** | ?? |
-| **Data** | ?? |
-| **Frontend** | ?? |
-| **Infrastructure** |??|
+| **AI / ML** | Python, ALS, LLM |
+| **Data** | Synthetic generated |
+| **Frontend** | Node.Js, Python |
+| **Infrastructure** |draw.io|
 
 ---
 
