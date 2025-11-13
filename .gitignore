@@ -1,2 +1,4 @@
 transaction.csv
 .env
+zenith_bank_transaction.csv
+zenith_bank_customers.csv
