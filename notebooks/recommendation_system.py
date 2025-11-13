@@ -1,11 +1,7 @@
-# %%
-# Install required libraries
-!pip install -q openai python-dotenv implicit scikit-learn scipy
+pip install -q openai python-dotenv implicit scikit-learn scipy
 
-# %%
 dbutils.library.restartPython()
 
-# %%
 import os
 import json
 import warnings
@@ -43,7 +39,6 @@ load_dotenv()
 
 print("✅ All libraries imported successfully")
 
-# %%
 # Load OpenAI API key from environment variables
 openai_api_key = os.getenv('OPENAI_API_KEY')
 if openai_api_key is None:
@@ -58,7 +53,7 @@ CONFIG = {
         'alpha': 40.0
     },
     'llm': {
-        'model': 'gpt-4o',  # 
+        'model': 'gpt-4o',
         'temperature': 0.3,
         'max_tokens': 2000
     },
@@ -77,21 +72,14 @@ print(json.dumps(CONFIG, indent=2))
 
 # %%
 # ==============================================================================
-# DATA LOADING - Databricks Unity Catalog Tables (SPARK VERSION)
+# DATA LOADING (SPARK)
 # ==============================================================================
-# Update these table names to match your Unity Catalog tables
-# Format: catalog.schema.table_name
+
 
 TRANSACTIONS_TABLE = 'workspace.default.transaction_data_1'
 PRODUCTS_TABLE = 'workspace.default.zenith_bank_product_catalog'
 CONVERSATIONS_TABLE = 'workspace.default.conversation_data_1'
-CUSTOMERS_TABLE = 'workspace.default.customer_data_1'  # Optional
-
-# ==============================================================================
-# For CSV files in DBFS, use this format instead:
-# TRANSACTIONS_PATH = '/dbfs/FileStore/tables/zenith_bank_transaction.csv'
-# Then use: df_transactions = spark.read.csv(TRANSACTIONS_PATH, header=True, inferSchema=True)
-# ==============================================================================
+CUSTOMERS_TABLE = 'workspace.default.customer_data_1'
 
 print("📂 Loading datasets from Unity Catalog...\n")
 
@@ -101,34 +89,34 @@ try:
     print(f"Loading: {TRANSACTIONS_TABLE}")
     df_transactions = spark.table(TRANSACTIONS_TABLE)
     transactions_count = df_transactions.count()
-    print(f"✅ Loaded {transactions_count:,} transactions")
+    print(f" Loaded {transactions_count:,} transactions")
     
     # Load products
     print(f"\nLoading: {PRODUCTS_TABLE}")
     df_products = spark.table(PRODUCTS_TABLE)
     products_count = df_products.count()
-    print(f"✅ Loaded {products_count:,} products")
+    print(f" Loaded {products_count:,} products")
     
     # Load conversations
     print(f"\nLoading: {CONVERSATIONS_TABLE}")
     df_conversations = spark.table(CONVERSATIONS_TABLE)
     conversations_count = df_conversations.count()
-    print(f"✅ Loaded {conversations_count:,} conversations")
+    print(f" Loaded {conversations_count:,} conversations")
     
     # Try loading customer demographics (optional)
     print(f"\nLoading: {CUSTOMERS_TABLE}")
     try:
         df_customers = spark.table(CUSTOMERS_TABLE)
         customers_count = df_customers.count()
-        print(f"✅ Loaded {customers_count:,} customer demographics")
+        print(f" Loaded {customers_count:,} customer demographics")
     except Exception as e:
         df_customers = None
-        print(f"⚠️ Customer demographics table not found: {e}")
-        print("   Proceeding without demographics data")
+        print(f" Customer demographics table not found: {e}")
+        print(" Proceeding without demographics data")
     
     # Display basic info using Spark operations
     print("\n" + "="*80)
-    print("📊 DATASET OVERVIEW")
+    print(" DATASET OVERVIEW")
     print("="*80)
     print(f"Unique Customers: {df_transactions.select('Customer_ID').distinct().count():,}")
     print(f"Unique Products: {df_products.select('Product_ID').distinct().count():,}")
@@ -146,35 +134,33 @@ try:
     print("="*80)
     
 except Exception as e:
-    print(f"\n❌ Error loading data: {e}")
-    print("\n💡 Troubleshooting:")
+    print(f"\n Error loading data: {e}")
+    print("\n Troubleshooting:")
     print("   1. Verify table names exist in Unity Catalog")
     print("   2. Check you have READ permissions on these tables")
     print("   3. Run: spark.sql('SHOW TABLES IN workspace.default').show()")
     print("   4. Or run: spark.catalog.listTables('workspace.default')")
 
-# %%
 # Quick data exploration
-print("\n📊 TRANSACTIONS SAMPLE:")
+print("\n TRANSACTIONS SAMPLE:")
 display(df_transactions.head())
 
-print("\n🏦 PRODUCTS SAMPLE:")
+print("\n PRODUCTS SAMPLE:")
 display(df_products.head())
 
-print("\n👥 CUSTOMERS SAMPLE:")
+print("\n CUSTOMERS SAMPLE:")
 display(df_customers.head())
 
-print("\n💬 CONVERSATIONS SAMPLE:")
+print("\n CONVERSATIONS SAMPLE:")
 display(df_conversations.head())
 
-print("\n📈 TRANSACTION STATISTICS:")
+print("\n TRANSACTION STATISTICS:")
 print(df_transactions.describe())
 
 # Check for missing values
-print("\n🔍 Missing Values:")
+print("\n Missing Values:")
 print(df_transactions.select([F.sum(F.col(c).isNull().cast('int')).alias(c) for c in df_transactions.columns]).show())
 
-# %%
 # ============================================================================
 # CELL 6 - HYBRID INTERACTION MATRIX (OPENAI + TRANSACTIONS WITH DESCRIPTIONS)
 # ============================================================================
@@ -220,7 +206,7 @@ def create_customer_product_interactions(df_custs, df_products, df_trans,
         transaction_weight: Weight for transaction scores (0-1)
     """
     start_time = time.time()
-    print("🔨 Creating interaction matrix (Hybrid: OpenAI + Transaction Descriptions)...\n")
+    print(" Creating interaction matrix (Hybrid: OpenAI + Transaction Descriptions)...\n")
     
     # Validate inputs
     if openai_api_key is None:
@@ -383,7 +369,7 @@ def create_customer_product_interactions(df_custs, df_products, df_trans,
     all_rules = general_rules + derived_rules
     rules_text = "\n".join(all_rules) if all_rules else "- Match products appropriately to customer profiles"
     
-    print(f"      Generated {len(derived_rules)} product-specific rules from catalog")
+    print(f"Generated {len(derived_rules)} product-specific rules from catalog")
     
     # =========================================================================
     # 6. USE OPENAI TO SCORE CUSTOMER-PRODUCT FIT
@@ -460,9 +446,9 @@ Do NOT include any other text, only the JSON object."""
                     'interaction_score': float(match['score'])
                 })
             
-            print(f" ✓ ({len(result.get('matches', []))} matches)")
+            print(f" ({len(result.get('matches', []))} matches)")
         except Exception as e:
-            print(f" ✗ Error: {e}")
+            print(f" Error: {e}")
             continue
         
         if batch_idx + batch_size < len(customer_profiles_list):
@@ -493,7 +479,7 @@ Do NOT include any other text, only the JSON object."""
         
         # Extract keywords from Description (if it exists)
         if 'Description' in df_trans_filtered.columns:
-            print("      ✓ Description field found - using for enhanced matching")
+            print(" Description field found - using for enhanced matching")
             df_trans_with_keywords = df_trans_with_keywords.withColumn(
                 'desc_keywords',
                 F.regexp_extract(F.lower(F.col('Description')), 
@@ -658,7 +644,7 @@ Do NOT include any other text, only the JSON object."""
     # =========================================================================
     # 9. AGGREGATE AND FINALIZE
     # =========================================================================
-    print("\n   → Building final interaction matrix...")
+    print("\n → Building final interaction matrix...")
     
     interaction_matrix = interaction_matrix.groupBy('Customer_ID', 'Product_Name').agg(
         F.max('interaction_score').alias('interaction_score')
@@ -695,22 +681,22 @@ Do NOT include any other text, only the JSON object."""
     unique_products = interaction_matrix.select('Product_Name').distinct().count()
     
     print("\n" + "="*80)
-    print("✅ HYBRID INTERACTION MATRIX CREATED")
+    print("HYBRID INTERACTION MATRIX CREATED")
     print("="*80)
     print(f"Total interactions: {total_interactions:,}")
     print(f"Unique customers: {unique_customers:,}")
     print(f"Unique products: {unique_products:,}")
     print(f"Products in catalog: {len(product_catalog)}")
-    print(f"\n🧠 {model_name} + Transaction Data:")
+    print(f"\n {model_name} + Transaction Data:")
     print(f"   • {len(derived_rules)} rules derived from product catalog")
     print(f"   • {len(additional_rules) if additional_rules else 0} custom business rules")
     print(f"   • Customer demographics and attributes")
     if use_transaction_data:
         print(f"   • Real transaction history with descriptions (weight: {transaction_weight*100:.0f}%)")
         print(f"   • RFM analysis: Recency (30%) + Frequency (35%) + Monetary (35%)")
-    print(f"\n⚠️ Current products EXCLUDED from recommendations")
-    print(f"   Customers with current products: {len(customer_current_products):,}")
-    print(f"\n⚡ Completed in {elapsed:.1f} seconds")
+    print(f"\n Current products EXCLUDED from recommendations")
+    print(f"Customers with current products: {len(customer_current_products):,}")
+    print(f"\n Completed in {elapsed:.1f} seconds")
     print(f"   Model used: {model_name}")
     print("="*80)
     
@@ -731,7 +717,7 @@ custom_rules = [
 interaction_df, product_map, customer_current_products = create_customer_product_interactions(
     df_customers,
     df_products,
-    df_transactions,                # Transaction data with descriptions
+    df_transactions, 
     openai_api_key=openai_api_key,
     model_name=CONFIG['llm']['model'],
     customer_sample_size=1000,
@@ -740,25 +726,23 @@ interaction_df, product_map, customer_current_products = create_customer_product
     top_n_products=CONFIG['recommendation']['top_n'],
     rate_limit_delay=0.5,
     additional_rules=custom_rules,
-    use_transaction_data=True,      # Enable transaction data
+    use_transaction_data=True,
     transaction_weight=0.7           # 70% transactions, 30% OpenAI
 )
 
-print("\n📊 Sample Interactions:")
+print("\n Sample Interactions:")
 interaction_df.show(10)
 
-print("\n🎯 Score Distribution:")
+print("\n Score Distribution:")
 interaction_df.describe(['interaction_score']).show()
 
-print("\n📈 Top Products by Interaction Count:")
+print("\n Top Products by Interaction Count:")
 top_products = interaction_df.groupBy('Product_Name').count().orderBy(F.desc('count')).limit(10)
 top_products.show()
 
-# %%
 interaction_df=interaction_df.toPandas()
 interaction_df.to_csv("interaction_df.csv", index=False)
 
-# %%
 def engineer_customer_features(df_trans, df_convs, df_custs=None, recency_days=90, customer_sample_size=1000):
     """
     Create comprehensive customer features for ML and LLM context.
@@ -1010,7 +994,7 @@ def engineer_customer_features(df_trans, df_convs, df_custs=None, recency_days=9
 # EXECUTE
 # ============================================================================
 
-print("🚀 Starting customer feature engineering...\n")
+print("Starting customer feature engineering...\n")
 
 customer_features = engineer_customer_features(
     df_transactions,      # Transactions table (filtered by sampled customers)
@@ -1020,25 +1004,23 @@ customer_features = engineer_customer_features(
     customer_sample_size=1000  # Sample 1000 customers
 )
 
-print("\n📊 Customer Features Sample:")
+print("\n Customer Features Sample:")
 customer_features.show(10, truncate=False)
 
-print("\n📈 Feature Statistics:")
+print("\n Feature Statistics:")
 customer_features.describe().show()
 
-print("\n📋 Feature Columns:")
+print("\n Feature Columns:")
 print(f"Total columns: {len(customer_features.columns)}")
 for col in customer_features.columns:
     print(f"  - {col}")
 
-# %%
 customer_features1=customer_features.toPandas()
 customer_features1.to_csv("customer_features.csv", index=False)
 
 
-# %%
 # ============================================================================  
-# UNITY CATALOG COMPATIBLE ALS + LLM RECOMMENDATION SYSTEM (FIXED)
+# ALS + LLM RECOMMENDATION SYSTEM
 # ============================================================================  
 
 from pyspark.sql import SparkSession, Window
@@ -1066,8 +1048,8 @@ ALS_RANK = 20
 ALS_REG_PARAM = 0.1
 ALS_MAX_ITER = 20
 
-INTERACTIONS_DF = interaction_df  # Your preloaded interactions
-CUSTOMERS_DF = customer_features    # Your preloaded customer features
+INTERACTIONS_DF = interaction_df
+CUSTOMERS_DF = customer_features
 PRODUCTS_DF = product_map
 
 # For testing - limit to N customers
@@ -1095,7 +1077,7 @@ interaction_df = (interaction_df
     .withColumn("interaction_score", col("interaction_score").cast("double"))
 )
 
-print(f"✅ Cleaned: {interaction_df.count():,} interactions")
+print(f"Cleaned: {interaction_df.count():,} interactions")
 
 # Deduplicate per Customer-Product
 w_dedup = Window.partitionBy("Customer_ID", "Product_Name").orderBy(desc("interaction_score"))
@@ -1111,7 +1093,7 @@ customer_features = CUSTOMERS_DF
 # STEP 2: CREATE INDEXES  
 # ============================================================================  
 
-print("\n📋 Step 2: Creating indexes...")
+print("\n Step 2: Creating indexes...")
 
 customer_lookup = (interaction_df
     .select("Customer_ID")
@@ -1125,8 +1107,8 @@ product_lookup = (interaction_df
     .withColumn("item_int", (row_number().over(Window.orderBy("Product_Name")) - 1).cast("int"))
 )
 
-print(f"  ✓ Customers: {customer_lookup.count():,}")
-print(f"  ✓ Products: {product_lookup.count():,}")
+print(f" Customers: {customer_lookup.count():,}")
+print(f" Products: {product_lookup.count():,}")
 
 # Indexed interactions
 idx_df = (interaction_df
@@ -1139,7 +1121,7 @@ idx_df = (interaction_df
 # STEP 3: TRAIN ALS  
 # ============================================================================  
 
-print("\n🔨 Step 3: Training ALS...")
+print("\n Step 3: Training ALS...")
 
 train_df, test_df = idx_df.randomSplit([0.8, 0.2], seed=42)
 
@@ -1164,13 +1146,13 @@ evaluator = RegressionEvaluator(
     predictionCol="prediction"
 )
 rmse = evaluator.evaluate(pred_test)
-print(f"✅ Trained. RMSE: {rmse:.4f}")
+print(f" Trained. RMSE: {rmse:.4f}")
 
 # ============================================================================  
 # STEP 4: GENERATE RECOMMENDATIONS (UNITY CATALOG COMPATIBLE)
 # ============================================================================  
 
-print("\n📋 Step 4: Generating recommendations...")
+print("\n Step 4: Generating recommendations...")
 
 # Extract factor matrices (Unity Catalog safe)
 user_factors = als_model.userFactors.collect()
@@ -1180,7 +1162,7 @@ item_factors = als_model.itemFactors.collect()
 user_factor_dict = {row['id']: row['features'] for row in user_factors}
 item_factor_dict = {row['id']: row['features'] for row in item_factors}
 
-print(f"  ✓ Users: {len(user_factor_dict):,}, Items: {len(item_factor_dict):,}")
+print(f" Users: {len(user_factor_dict):,}, Items: {len(item_factor_dict):,}")
 
 # Compute recommendations manually in Python (bypasses Unity Catalog restrictions)
 recs_list = []
@@ -1234,7 +1216,7 @@ als_recommendations = als_recommendations.withColumn(
 # SAVE TABLE 1: ALS RECOMMENDATIONS  
 # ============================================================================  
 
-print("\n💾 Saving ALS table...")
+print("\n Saving ALS table...")
 
 # Collect and recreate to break lineage completely
 als_data = als_recommendations.select(
@@ -1260,13 +1242,13 @@ als_output_data = [{
 als_output = spark.createDataFrame(als_output_data, schema=als_output_schema).orderBy("Customer_ID", "rank")
 
 als_output.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable("als_recommendations_table")
-print("✅ Table 1 saved: als_recommendations_table")
+print("Table 1 saved: als_recommendations_table")
 
 # ============================================================================  
 # STEP 5: GENERATE LLM EXPLANATIONS (IMPROVED WITH ERROR HANDLING)
 # ============================================================================  
 
-print(f"\n🤖 Step 5: Generating LLM explanations (limiting to {SAMPLE_CUSTOMERS} customers)...")
+print(f"\n Step 5: Generating LLM explanations (limiting to {SAMPLE_CUSTOMERS} customers)...")
 
 # Initialize OpenAI client
 client = OpenAI(api_key=OPENAI_API_KEY)
@@ -1341,7 +1323,7 @@ DO NOT use second-person language like "you" or "your"."""
         return f"This customer's profile and banking behavior patterns indicate strong alignment with {product_name}. Recommendation confidence: {confidence_pct:.1f}%."
 
 # Get top N customers and their top 3 recommendations
-print(f"  → Selecting top {SAMPLE_CUSTOMERS} customers...")
+print(f" Selecting top {SAMPLE_CUSTOMERS} customers...")
 top_customers = (als_recommendations
     .select("Customer_ID")
     .distinct()
@@ -1357,23 +1339,23 @@ top_3_recs = (als_recommendations
     .collect()
 )
 
-print(f"  ✓ Processing {len(top_customer_ids)} customers, {len(top_3_recs)} recommendations...")
+print(f" Processing {len(top_customer_ids)} customers, {len(top_3_recs)} recommendations...")
 
 # Pre-fetch ALL customer features efficiently
-print("  → Fetching customer features...")
+print(" Fetching customer features...")
 customer_features_list = customer_features.filter(
     col("Customer_ID").isin(top_customer_ids)
 ).collect()
 
 customer_dict = {row['Customer_ID']: row.asDict() for row in customer_features_list}
-print(f"  ✓ Loaded {len(customer_dict)} customer profiles")
+print(f" Loaded {len(customer_dict)} customer profiles")
 
 # Generate explanations with progress tracking
 llm_results = []
 total_recs = len(top_3_recs)
 start_time = datetime.now()
 
-print(f"\n  🔄 Starting LLM generation at {start_time.strftime('%H:%M:%S')}...")
+print(f"\n Starting LLM generation at {start_time.strftime('%H:%M:%S')}...")
 
 for idx, row in enumerate(top_3_recs, 1):
     if idx % 5 == 0 or idx == 1:
@@ -1404,7 +1386,7 @@ for idx, row in enumerate(top_3_recs, 1):
 
 end_time = datetime.now()
 total_time = (end_time - start_time).total_seconds()
-print(f"\n  ✅ Completed {len(llm_results)} explanations in {total_time:.1f}s (avg {total_time/len(llm_results):.2f}s per explanation)")
+print(f"\n Completed {len(llm_results)} explanations in {total_time:.1f}s (avg {total_time/len(llm_results):.2f}s per explanation)")
 
 # Create final Spark DataFrame
 llm_schema = StructType([
@@ -1421,7 +1403,7 @@ final_recommendations = spark.createDataFrame(llm_results, schema=llm_schema)
 # SAVE TABLE 2: FINAL RECOMMENDATIONS  
 # ============================================================================  
 
-print("\n💾 Saving final recommendations table...")
+print("\n Saving final recommendations table...")
 
 final_output = (final_recommendations
     .select(
@@ -1437,7 +1419,7 @@ final_output.write.mode("overwrite").option("overwriteSchema", "true").saveAsTab
 print("✅ Table 2 saved: final_recommendations_api_table")
 
 # Display sample results
-print("\n📊 SAMPLE RESULTS:")
+print("\n SAMPLE RESULTS:")
 print("-" * 100)
 final_output.show(10, truncate=False)
 
@@ -1448,25 +1430,20 @@ final_output.show(10, truncate=False)
 print("\n" + "="*100)
 print("✅ RECOMMENDATION SYSTEM COMPLETE!")
 print("="*100)
-print(f"  📊 ALS Model Performance:")
-print(f"     • RMSE: {rmse:.4f}")
-print(f"     • Rank: {ALS_RANK}")
-print(f"     • Regularization: {ALS_REG_PARAM}")
-print(f"\n  👥 Coverage:")
-print(f"     • Total Customers: {len(user_factor_dict):,}")
-print(f"     • Total Products: {len(item_factor_dict):,}")
-print(f"\n  💾 Output Tables:")
-print(f"     • ALS recommendations: {len(als_output_data):,} rows → als_recommendations_table")
-print(f"     • Final recommendations with LLM: {len(llm_results):,} rows → final_recommendations_api_table")
-print(f"\n  ⏱️  LLM Generation:")
-print(f"     • Total time: {total_time:.1f}s")
-print(f"     • Avg per recommendation: {total_time/len(llm_results):.2f}s")
+print(f" ALS Model Performance:")
+print(f" RMSE: {rmse:.4f}")
+print(f" Rank: {ALS_RANK}")
+print(f" Regularization: {ALS_REG_PARAM}")
+print(f"\n Coverage:")
+print(f" Total Customers: {len(user_factor_dict):,}")
+print(f" Total Products: {len(item_factor_dict):,}")
+print(f"\n Output Tables:")
+print(f" ALS recommendations: {len(als_output_data):,} rows → als_recommendations_table")
+print(f" Final recommendations with LLM: {len(llm_results):,} rows → final_recommendations_api_table")
+print(f"\n LLM Generation:")
+print(f"  Total time: {total_time:.1f}s")
+print(f" Avg per recommendation: {total_time/len(llm_results):.2f}s")
 print("="*100)
 
-# %%
+
 interaction_df.show()
-
-# %%
-
-
-
